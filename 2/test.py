@@ -43,6 +43,7 @@ def daa(k):
     for i in bin_num:
         if(i=='1'):
             K = add(add(K,K),G)
+            #k = add(K,G)
         else:
             K = add(K,K)
     return K
@@ -64,12 +65,10 @@ def add(first,second):
     result = [x3,y3]
     return result
 
-p_k = generate_private_key()
-#p_k = 53872441058844996679977158571737064850247033767869768697312274424220201917752
+#p_k = generate_private_key()
+p_k = 53872441058844996679977158571737064850247033767869768697312274424220201917752
 print("개인키 (16) : "+hex(p_k))
 print("개인키 (10) : {}".format(p_k))
 #print("개인키 (16) : "+hex(generate_private_key()))
 pub = daa(p_k)
-print("공개키 (16) x: "+hex(pub[0]))
-print("공개키 (16) y: "+hex(pub[1]))
-print(pub)
+print(hex(pub[0]))
