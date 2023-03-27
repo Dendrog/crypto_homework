@@ -68,7 +68,7 @@ def add(first,second):
     return result
 
 def bitcoin_addr():
-    p_k = int(input('개인키 입력? '),16)
+    p_k = generate_private_key()
     pub = daa(p_k)
     if(pub[1]%2):
         pre_y = '03'
@@ -77,15 +77,25 @@ def bitcoin_addr():
     if(len(hex(pub[0]))%2):
         pre_y+='0'
     public_key = pre_y+hex(pub[0])[2:]
+    #print(hex(pub[0]))
+    #print(public_key)
     public_key_hash = hashlib.sha256(bytes.fromhex(public_key)).digest()
     h = RIPEMD160.new()
     h.update(public_key_hash)
     ripemd160 = bytes(h.hexdigest(),'utf-8')
     plus_ver = unhexlify(b'00'+ripemd160)
-    print("공개키 hash : {}".format(plus_ver.hex()))
+    #print("공개키 hash : {}".format(plus_ver.hex()))
     double_hash = hashlib.sha256(hashlib.sha256(plus_ver).digest()).digest()
     checksum = double_hash[0:4]
     before_base58 = base58check.b58encode(plus_ver+checksum)
-    print("비트코인 주소 = {}".format(before_base58.decode('utf-8')))
+    #print("비트코인 주소 = {}".format(before_base58.decode('utf-8')))
+    return p_k,before_base58.decode('utf-8')
 
-bitcoin_addr()
+start_str = input("희망하는 주소의 문자열? ")
+while(True):
+    pk,bit = bitcoin_addr()
+    if(bit[1:len(start_str)+1] == start_str):
+        print("개인 키 = {}".format(hex(pk)[2:]))
+        print("주소 = {}".format(bit))
+        break
+
