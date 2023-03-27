@@ -1,51 +1,37 @@
 import hashlib
 import base58
+import ecdsa
 
-def public_key_to_address(public_key):
-    # Step 1: SHA-256
-    sha256 = hashlib.sha256()
-    sha256.update(public_key.encode())
-    hash1 = sha256.digest()
+def private_key_to_public_key(private_key):
+    private_key = bytes.fromhex(private_key)
+    sk = ecdsa.SigningKey.from_string(private_key, curve=ecdsa.SECP256k1)
+    vk = sk.get_verifying_key()
+    x, y = vk.pubkey.point.x(), vk.pubkey.point.y()
+    return (x, y)
 
-    # Step 2: RIPEMD-160
+def compress_public_key(x, y):
+    if y % 2 == 0:
+        return '02' + format(x, 'x')
+    else:
+        return '03' + format(x, 'x')
+
+def public_key_to_hash(compressed_public_key):
+    sha = hashlib.sha256(bytes.fromhex(compressed_public_key)).digest()
+    print(sha.hex())
     ripemd160 = hashlib.new('ripemd160')
-    ripemd160.update(hash1)
-    hash2 = ripemd160.digest()
+    ripemd160.update(sha)
+    return '00' + ripemd160.hexdigest()
 
-    # Step 3: Add version byte in front of RIPEMD-160 hash (0x00 for Main Network)
-    hash3 = b'\x00' + hash2
+def base58_check_encoding(hex_value):
+    checksum = hashlib.sha256(hashlib.sha256(bytes.fromhex(hex_value)).digest()).hexdigest()[:8]
+    return base58.b58encode(bytes.fromhex(hex_value + checksum))
 
-    # Step 4: Perform SHA-256 hash on the extended RIPEMD-160 result
-    sha256 = hashlib.sha256()
-    sha256.update(hash3)
-    hash4 = sha256.digest()
+private_key = input("개인키 입력? ")
+x, y = private_key_to_public_key(private_key)
+compressed_public_key = compress_public_key(x, y)
+print(compressed_public_key)
+public_key_hash = public_key_to_hash(compressed_public_key)
+bitcoin_address = base58_check_encoding(public_key_hash)
 
-    # Step 5: Perform SHA-256 hash on the result of the previous SHA-256 hash
-    sha256 = hashlib.sha256()
-    sha256.update(hash4)
-    hash5 = sha256.digest()
-
-    # Step 6: Take the first 4 bytes of the second SHA-256 hash. This is the address checksum
-    checksum = hash5[:4]
-
-    # Step 7: Add the 4 checksum bytes from stage 7 at the end of extended RIPEMD-160 hash from stage 3.
-    hash6 = hash3 + checksum
-
-    # Step 8: Convert to Base58 encoding
-    address = base58.b58encode(hash6)
-
-    return address.decode('utf-8')
-'''
-pubkey = 'public_key'
-address_uncompressed = public_key_to_address(pubkey)
-print('Uncompressed Address:', address_uncompressed)
-
-compress_key = True
-if compress_key:
-    pubkey_compressed = '02' + pubkey[-64:] if int(pubkey[-1], 16) % 2 == 0 else '03' + pubkey[-64:]
-else:
-    pubkey_compressed = pubkey
-'''
-pubkey_compressed = input()
-address_compressed = public_key_to_address(pubkey_compressed)
-print('Compressed Address:', address_compressed)
+print("공개키 hash =", public_key_hash)
+print("비트코인 주소 =", bitcoin_address.decode('utf-8'))

@@ -2,6 +2,9 @@ import os
 import random
 import time
 import hashlib
+import base58check
+from Crypto.Hash import RIPEMD160
+from binascii import unhexlify
 
 p = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFC2F
 G = [0x79BE667EF9DCBBAC55A06295CE870B07029BFCDB2DCE28D959F2815B16F81798,
@@ -67,30 +70,20 @@ def add(first,second):
 def bitcoin_addr():
     p_k = int(input('개인키 입력? '),16)
     pub = daa(p_k)
-    print("공개키 (16) x: "+hex(pub[0]))
     if(pub[1]%2):
         pre_y = '0x03'
     else:
         pre_y = '0x02'
     public_key = pre_y+hex(pub[0])[2:]
-    print("공개키+홀짝 : "+public_key)
-    public_key_hash = hashlib.sha256(public_key.encode()).digest()
-    print("public key hash : {}".format(public_key_hash.hex()))
-    ripemd160 = hashlib.new('ripemd160')
-    ripemd160.update(public_key_hash)
-    hash2 = ripemd160.digest()
-    print("ripemd160 : {}".format(hash2.hex()))
+    public_key_hash = hashlib.sha256(bytes.fromhex(public_key[2:])).digest()
+    h = RIPEMD160.new()
+    h.update(public_key_hash)
+    ripemd160 = bytes(h.hexdigest(),'utf-8')
+    plus_ver = unhexlify(b'00'+ripemd160)
+    print("공개키 hash : {}".format(plus_ver.hex()))
+    double_hash = hashlib.sha256(hashlib.sha256(plus_ver).digest()).digest()
+    checksum = double_hash[0:4]
+    before_base58 = base58check.b58encode(plus_ver+checksum)
+    print("비트코인 주소 = {}".format(before_base58.decode('utf-8')))
 
 bitcoin_addr()
-
-'''
-p_k = generate_private_key()
-#p_k = 53872441058844996679977158571737064850247033767869768697312274424220201917752
-print("개인키 (16) : "+hex(p_k))
-print("개인키 (10) : {}".format(p_k))
-#print("개인키 (16) : "+hex(generate_private_key()))
-pub = daa(p_k)
-print("공개키 (16) x: "+hex(pub[0]))
-print("공개키 (16) y: "+hex(pub[1]))
-print(pub)
-'''
